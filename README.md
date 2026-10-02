@@ -1,194 +1,179 @@
-# 头像直传 - pickCat 自定义头像工具
+# pickCat 自定义头像工具
 
-静态单页工具：登录社区账号，选择一张图片，由浏览器直接调用站点接口，把头像设置为该图片（`CUSTOM` 类型）。
+一个网页小工具：填账号密码、选一张图片，就能把 pickCat 社区的头像换成这张图。
 
-- 无框架、无构建步骤、无第三方运行时依赖，三个文件即可运行
-- 全部请求由本机浏览器发出，账号与密码不经过其他服务器
-- 界面按 Material Design 3 实现：tonal 色板、state layer、filled text field、switch、card、snackbar、抽屉、明暗主题
-- 图片在浏览器内转码为静态 WebP，并在上传前清洗 RIFF 容器（移除 ICCP、EXIF、XMP、ANIM 等块）
+不用安装任何软件，账号密码只在你自己的浏览器里使用，不会发送到其他地方。
 
-**环境要求**：现代浏览器（Chrome、Edge、Firefox、Safari 的近期版本）。本地开发服务器需要 Node.js 18 或更高版本。
-
-**使用范围**：仅可用于本人持有并有权操作的账号。该工具依赖站点接口的一个已公开披露的校验缺失问题，详见 [SECURITY.md](SECURITY.md)。
+> 只在本人账号上使用。这个工具用到了站点接口的一处校验缺失，站点修复后就可能失效，详见 [SECURITY.md](SECURITY.md)。
 
 ---
 
-## 目录
+## 怎么用
 
-| 文件 | 说明 |
-| --- | --- |
-| `index.html` | 页面结构（MD3 布局） |
-| `styles.css` | MD3 token 与组件样式（手写，含明暗两套色板） |
-| `app.js` | 全部逻辑：登录、图片转码、直传、派生、回读校验 |
-| `serve.mjs` | 本地开发服务器（零依赖 Node 脚本）：伺服静态文件 + 反代 `/api` |
-| `avatar.webp`、`avatar.jpg` | 示例图片，可直接用于测试 |
-| `.github/workflows/pages.yml` | 部署到 GitHub Pages 的工作流 |
-| `LICENSE` | MIT 许可证 |
-| `SECURITY.md` | 安全说明、缺陷背景与使用范围 |
-| `CONTRIBUTING.md` | 问题反馈与代码提交约定 |
+### 第一步：把工具跑起来
 
----
+需要电脑上装了 Node.js（[下载地址](https://nodejs.org)，选带 LTS 的版本，一路下一步即可）。
 
-## 部署方式与限制
-
-页面是纯静态资源，可以托管到任意静态服务器。但**能否调用接口取决于请求是否同源**，两条限制都由浏览器强制执行：
-
-| 限制 | 表现 |
-| --- | --- |
-| 接口 CORS 白名单只放行站点自身域名 | 其他 Origin 的请求，服务端返回 `403`，且不返回 `Access-Control-Allow-Origin` |
-| 会话 Cookie 为 `Secure; SameSite=Lax` | 页面与接口跨站时，浏览器不发送该 Cookie，登录态无法建立 |
-
-结论：**GitHub Pages 上页面可以正常打开，但登录、上传、派生会被浏览器拦下**，静态托管本身没有绕开这两条限制的手段。若要在 Pages 上使用，必须配置一个中转地址（见下文「GitHub Pages」）。
-
-### 方式一：本地开发服务器（开箱即用）
+下载本仓库后，在文件夹里打开命令行，执行：
 
 ```bash
-node serve.mjs            # 默认 http://127.0.0.1:8787
-node serve.mjs --port 9000 --target https://cdsq.dao3.fun
-# 亦可用环境变量：PORT / TARGET / HOST
+node serve.mjs
 ```
 
-页面在 `/`，接口在 `/api/**` 并由服务器反代到 `cdsq.dao3.fun`，两者对浏览器同源，会话 Cookie 正常携带，三个接口均可用。
+看到下面这样的提示就说明成功了：
 
-### 方式二：以本地服务器作为 Pages 的中转
-
-GitHub Pages 提供页面，中转由本机 `serve.mjs` 承担：
-
-```bash
-node serve.mjs --port 8787
+```
+头像直传 - 本地开发服务器
+页面     http://127.0.0.1:8787/
 ```
 
-然后在页面右上角设置中填写：
+然后用浏览器打开 **http://127.0.0.1:8787/**
 
-| 设置项 | 值 |
-| --- | --- |
-| 接口地址（Origin） | `https://cdsq.dao3.fun` |
-| CORS 代理前缀 | `http://127.0.0.1:8787` |
+> 如果提示 `node` 不是可用的命令，说明 Node.js 没装好或没重启命令行，重装一次再试。
 
-`serve.mjs` 会转发请求、改写 `Set-Cookie` 的 `Domain`，并去掉上游的 CORS 响应头。此方式需要本机运行 Node。
+### 第二步：登录
 
-### 方式三：部署到站点同域下
+在页面上填入账号和密码，点「登录」。登录成功后会显示你的用户名、等级和图盘剩余空间。
 
-把本目录放到站点同域的任意路径（例如 `https://cdsq.dao3.fun/tools/avatar/`），无需后端，页面与接口同源，直接可用。
+密码不会被保存，除非你自己勾选「在本机保存账号与密码」。勾选后密码会以明文存在浏览器里，公用电脑上不要勾。
 
-### 方式四：直接打开 `index.html`
+### 第三步：选图片
 
-页面正常渲染，但接口请求会被拒绝。页面顶部会给出对应提示，可用于查看界面。
+点方框选择图片，或直接把图片拖进去。支持常见格式：PNG、JPEG、WebP、GIF。
+
+选好之后下方会显示转换结果，例如：
+
+```
+3.3 KB -> WebP 3.8 KB - 100×100 - q=0.92
+```
+
+意思是：原图 3.3 KB，转换成站点需要的 WebP 格式后是 3.8 KB，尺寸 100×100 像素。
+
+图片建议用正方形、边长 384 像素以上，太小的图放大后会模糊。
+
+### 第四步：更换头像
+
+点「开始上传并更换头像」。页面会依次显示：上传文件、提交头像、回读校验。全部完成后，页面底部会出现结果卡片，显示新头像和头像地址。
+
+到社区刷新页面就能看到新头像了。
 
 ---
 
-## GitHub Pages
+## 需要知道的事
 
-仓库已包含 `.github/workflows/pages.yml`。推送 `main` 分支后，在仓库 **Settings -> Pages -> Build and deployment -> Source** 选择 **GitHub Actions**，工作流会把 `index.html`、`styles.css`、`app.js` 发布到 Pages。
+**24 小时内只能换一次。** 站点对自定义头像有冷却限制。冷却期内换头像会被拒绝，页面上会显示可以再次更换的时间。
 
-访问地址：`https://<用户名>.github.io/<仓库名>/`
+**图盘空间有上限。** 每个账号 20 MB，用于存放上传的图片。页面右侧会显示当前用量。
 
-该地址与接口跨域，需要配置中转后才能实际使用。可选两种：
+**头像不会被裁掉。** 工具按整张图片提交，站点会把它处理成正方形头像。
 
-**1. 本机 `serve.mjs` 作为中转**（最简单，但每次使用需启动本机服务）
-
-```
-接口地址（Origin）：https://cdsq.dao3.fun
-CORS 代理前缀：     http://127.0.0.1:8787
-```
-
-**2. 自建无服务器中转**（Pages 独立可用）
-
-需要一个能转发 Cookie 的 HTTPS 中转，要求：
-
-- 转发 `Cookie`、`Content-Type`、`Idempotency-Key` 请求头到 `https://cdsq.dao3.fun`
-- 改写响应中 `Set-Cookie` 的 `Domain` 属性（去掉或改为中转自身域名），否则浏览器不会保存
-- 响应中返回 `Access-Control-Allow-Origin: <Pages 地址>`（不能为 `*`）与 `Access-Control-Allow-Credentials: true`
-- 处理 `OPTIONS` 预检
-
-页面只需把中转地址填入「CORS 代理前缀」，「接口地址」保持 `https://cdsq.dao3.fun`。
-
----
-
-## 使用步骤
-
-1. **登录**：填用户名 / 密码 -> 调用 `POST /api/v1/session`。成功后浏览器保存 `pickcat_session`（HttpOnly，脚本读不到）。可选「记住账号密码」写入本机 `localStorage`。
-2. **选图**：点击或拖入图片。浏览器将其转码为静态 WebP（服务端仅接受 WebP，JPEG 与 PNG 会被 `422 FILE_IMAGE_INVALID / NOT_WEBP` 拒绝）。
-   - 可选：居中裁成正方形、最长边限制为 1024px；
-   - 编码质量可在设置里调（0.4–1.0），超过 9 MiB 会自动降质重编。
-3. **执行**：`POST /api/v1/files`（multipart，`ownership=PERSONAL`，带 `Idempotency-Key`）-> 得到文件 UUID ->
-   `PUT /api/v1/users/{userId}/avatar`，body：
-
-   ```json
-   { "type": "DERIVE", "sourceFileId": "<文件UUID>", "crop": { "left": 0, "top": 0, "right": 100, "bottom": 100 } }
-   ```
-
-   `crop` 是**源图像素框**（不是比例），整图即 `right/bottom` 等于图片宽高。
-4. **回读校验**：重新 `GET /users/{id}`，确认 `avatar.type === "CUSTOM"`，并展示新头像（带 `?t=时间戳` 破缓存）。
-
-侧栏会显示当前账号、图盘用量（`/file-storage`）以及按时间倒序的请求日志。
-
----
-
-## 接口要点（逆向自站点自身的前端包）
-
-| 接口 | 用途 | 备注 |
-| --- | --- | --- |
-| `POST /api/v1/session` | 登录 | 201 + `Set-Cookie: pickcat_session`（`Secure; HttpOnly; SameSite=Lax; Path=/`，有效期 7 天） |
-| `GET /api/v1/session` | 读当前会话 | 401 表示未登录 |
-| `DELETE /api/v1/session` | 注销 | — |
-| `POST /api/v1/files` | 上传图片 | multipart：`ownership=PERSONAL` + `file`；**必须**带 `Idempotency-Key`（1–128 个可见 ASCII）；只接受静态 WebP；返回 `{ id }` |
-| `PUT /api/v1/files/{fileId}/deletion` | 下架图片 | 释放容量有冷静期 |
-| `GET /api/v1/file-storage` | 图盘用量 | 默认额度 20 MiB |
-| `PUT /api/v1/users/{id}/avatar` | 换头像 | `type`: `PRESET`（`presetId`）/ `CUSTOM`（恢复保留槽）/ `DERIVE`（`sourceFileId` + `crop`） |
-| `GET /api/v1/users/{id}/avatar` | 头像状态 | 含 `current`、`custom`、`derivationAvailableAt` |
-| `GET /api/v1/users/{id}` | 用户资料 | 含 `avatar.type`，用于回读校验 |
-
-其他约束：
-
-- 上传前本页会清洗 WebP 容器：移除 ICCP、EXIF、XMP、ANIM 等块，只保留图像数据块（部分浏览器的 canvas 导出会附带 ICCP）。
-- 服务端会把上传的 WebP 无损重编码至 384×384，成品体积可能大于上传文件（实测 4.3 KB 变为 11.7 KB）。
-- 派生有 **24 小时冷却**（`derivationAvailableAt`），冷却期内不能再次 `DERIVE`，但可以切回预设或已保留的自定义槽。
-- 客户端上传上限按 9 MiB 处理（服务端声明 10 MiB）。
-
----
-
-## 设置项（右上角齿轮）
-
-| 设置 | 默认 | 说明 |
-| --- | --- | --- |
-| 接口地址（Origin） | 空 = 当前站点同源 | 跨域时填 `https://cdsq.dao3.fun` |
-| CORS 代理前缀 | 空 | 拼接为 `前缀 + 目标地址`；支持 `{url}` 占位符（会做 URL 编码）。代理必须转发 Cookie 并返回 `Access-Control-Allow-Credentials: true` |
-| WebP 质量 | 0.92 | 越高越接近原图 |
-| 记住账号密码 | 关 | 仅写入本机 `localStorage`，无加密 |
-
-配置存在 `localStorage` 的 `pickcat-avatar-tool/config`，凭据存在 `pickcat-avatar-tool/credentials`。
+**账号安全提示。** 同一 IP 连续多次登录失败，可能触发站点的登录限制，稍等一段时间再试。
 
 ---
 
 ## 常见问题
 
-| 现象 | 原因 / 处理 |
-| --- | --- |
-| 页面顶部提示「当前页面与接口不同源」 | 部署在 GitHub Pages 等第三方域名，且未配置中转地址。按上文填写「CORS 代理前缀」 |
-| `请求未到达服务端` / CORS 报错 | 页面与接口不同源，或代理不可用。改用 `serve.mjs`、同源部署或有效中转 |
-| `403` 且无 JSON body | 服务端拒绝了该 `Origin`（CORS 白名单），同上 |
-| `422 FILE_IMAGE_INVALID / NOT_WEBP` | 上传内容不是 WebP。本页会自动转码；手动调用接口时需自行转换 |
-| `400 VALIDATION_FAILED` 提到 `Idempotency-Key` | 上传缺少该请求头 |
-| `401 UNAUTHENTICATED` | 会话过期，重新登录 |
-| `409 CUSTOM_AVATAR_NOT_AVAILABLE` | 账号还没有保留的自定义头像，先用 `DERIVE` 派生一次 |
-| 头像未变化 | 处于 24 小时派生冷却期；页面会提示可再次更换的时间 |
-| 中转已通但登录后仍 401 | 中转未改写 `Set-Cookie` 的 `Domain`，浏览器丢弃了会话 Cookie |
-| 跨域下登录成功但后续请求 401 | 浏览器未保存 `Secure` Cookie（仅 HTTPS 与 localhost 属于安全上下文） |
+**页面能打开，但一登录就报错，或者提示「请求未到达服务端」**
+
+说明页面和接口不在同一个域名下，浏览器会拦截这种请求。按上面「第一步」的方式，用 `node serve.mjs` 打开页面，不要直接双击 `index.html`。
+
+**提示「图片不符合要求，必须是干净的静态 WebP」**
+
+图片格式不对。正常情况下工具会自动转换，出现这个提示说明转换结果没通过服务端校验，换一张图片再试。
+
+**提示「当前账号没有可恢复的自定义头像」**
+
+这个账号还没有设置过自定义头像，直接上传图片设置即可，不用管这条提示。
+
+**登录失败，提示用户名或密码错误**
+
+确认密码是否正确。若密码近期改过，用新密码。若连续多次失败，等几分钟再试。
+
+**上传成功，但换头像时报错**
+
+多半是处于 24 小时冷却期，页面上会显示可再次更换的时间。
+
+**换完头像，社区页面还是旧头像**
+
+浏览器缓存。按 Ctrl+F5 强制刷新。
 
 ---
 
-## 安全与合规说明
+## 关于 GitHub Pages
 
-- 本页不含后端：请求由浏览器直达目标站点，凭据仅存在于页面内存，以及勾选保存后的本机 `localStorage`。
-- 目标接口的 `DERIVE` 分支在服务端不校验自定义头像的等级限制，属于已公开反馈的缺陷利用路径。若服务端补充该校验，本页功能可能失效或头像被回滚。
-- 请仅在本人持有并有权操作的账号上使用。完整说明见 [SECURITY.md](SECURITY.md)。
+本仓库开启了 GitHub Pages 的话，会有一个在线地址：
+
+```
+https://ttummc.github.io/pickcat-avatar-tool/
+```
+
+**这个在线版本只能浏览界面，不能真正更换头像。** 原因是社区接口只允许自己域名下的页面调用，浏览器也会拦截跨站的登录状态。
+
+想实际使用，有两个办法：
+
+1. 用上面的 `node serve.mjs` 在本机打开（推荐，最省事）。
+2. 在线页面仍然可用，但需要你自己准备一个中转服务，在页面右上角的设置里填写中转地址。中转的要求写在 [README 开发者部分](#给开发者) 里。
+
+---
+
+## 给开发者
+
+以下内容面向需要改动代码或自建中转的人，普通使用可以跳过。
+
+### 文件说明
+
+| 文件 | 用途 |
+| --- | --- |
+| `index.html` `styles.css` `app.js` | 页面、样式与全部逻辑，无第三方依赖，无构建步骤 |
+| `serve.mjs` | 本地服务器：提供页面，并把 `/api` 反代到社区接口，使两者同源 |
+| `.github/workflows/pages.yml` | GitHub Pages 部署工作流 |
+| `SECURITY.md` | 缺陷背景与使用范围 |
+| `CONTRIBUTING.md` | 问题反馈与代码约定 |
+
+### 为什么直接托管无法使用
+
+两条浏览器策略，无法用前端代码绕过：
+
+| 限制 | 表现 |
+| --- | --- |
+| 接口 CORS 白名单只放行站点自身域名 | 其他来源的请求被服务端拒绝，返回 403 |
+| 会话 Cookie 为 `Secure; SameSite=Lax` | 跨站时浏览器不发送该 Cookie，登录状态无法建立 |
+
+自建中转需满足：
+
+- 把 `Cookie`、`Content-Type`、`Idempotency-Key` 请求头转发到 `https://cdsq.dao3.fun`
+- 改写响应中 `Set-Cookie` 的 `Domain` 属性，否则浏览器不会保存会话
+- 返回 `Access-Control-Allow-Origin: <你的页面地址>`（不能是 `*`）与 `Access-Control-Allow-Credentials: true`
+- 处理 `OPTIONS` 预检请求
+
+### 调用流程
+
+1. `POST /api/v1/session` 登录，服务端下发 `pickcat_session` Cookie（有效期 7 天）。
+2. 图片在浏览器内转码为静态 WebP，并清洗 RIFF 容器：移除 ICCP、EXIF、XMP、ANIM 等块，只保留图像数据块。服务端只接受容器干净的静态 WebP。
+3. `POST /api/v1/files` 上传，multipart 表单，字段为 `ownership=PERSONAL` 与 `file`，必须携带 `Idempotency-Key` 请求头（1 到 128 个可见 ASCII 字符），返回文件 UUID。
+4. `PUT /api/v1/users/{userId}/avatar` 提交头像，请求体：
+
+   ```json
+   {
+     "type": "DERIVE",
+     "sourceFileId": "<文件 UUID>",
+     "crop": { "left": 0, "top": 0, "right": 100, "bottom": 100 }
+   }
+   ```
+
+   `crop` 为源图像素坐标，不是比例。整图即 `right`、`bottom` 等于图片宽高。
+5. `GET /api/v1/users/{userId}` 回读校验，确认 `avatar.type` 为 `CUSTOM`。
+
+其他接口：`GET /api/v1/users/{id}/avatar` 查询头像状态，`GET /api/v1/file-storage` 查询图盘用量，`PUT /api/v1/files/{fileId}/deletion` 下架图片，`DELETE /api/v1/session` 退出登录。
+
+### 其他约束
+
+- 服务端会把上传的 WebP 无损重编码至 384×384，成品体积可能大于上传文件。
+- 派生冷却 24 小时，冷却期内可以切回预设头像或已保留的自定义头像。
+- 客户端上传上限按 9 MiB 处理，服务端声明为 10 MiB。
 
 ---
 
 ## 许可证
 
-本项目以 [MIT 许可证](LICENSE) 发布。
-
-第三方名称与接口均归其各自权利人所有，本项目与站点运营方无隶属关系。
-
+[MIT](LICENSE)。相关名称与接口归其各自权利人所有，本项目与站点运营方无隶属关系。
