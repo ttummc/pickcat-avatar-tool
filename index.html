@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>头像直传 - pickCat 自定义头像工具</title>
+<meta name="description" content="静态页面工具：登录 pickCat 社区账号，将指定图片设为自定义头像。">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- 背景层 -->
+<div class="m3-backdrop" aria-hidden="true">
+  <span class="blob blob-1"></span>
+  <span class="blob blob-2"></span>
+  <span class="blob blob-3"></span>
+</div>
+
+<!-- 顶部 App Bar -->
+<header class="m3-top-app-bar">
+  <div class="m3-top-app-bar__row">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="9" r="4.2"></circle>
+          <path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path>
+        </svg>
+      </span>
+      <span class="brand__text">
+        <strong>头像直传</strong>
+        <small>pickCat 自定义头像工具</small>
+      </span>
+    </div>
+    <div class="m3-top-app-bar__actions">
+      <button class="m3-icon-button" id="btn-settings" type="button" title="接口设置" aria-label="接口设置">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"></path></svg>
+      </button>
+      <button class="m3-icon-button" id="btn-theme" type="button" title="切换深色 / 浅色" aria-label="切换深色或浅色主题">
+        <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"></path></svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- 接口设置抽屉 -->
+<div class="drawer-scrim" id="settings-scrim" hidden></div>
+<aside class="m3-drawer" id="settings-drawer" hidden aria-labelledby="settings-title">
+  <div class="m3-drawer__head">
+    <h2 id="settings-title">接口设置</h2>
+    <button class="m3-icon-button" id="btn-close-settings" type="button" aria-label="关闭设置">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+    </button>
+  </div>
+  <div class="m3-drawer__body">
+    <label class="m3-field" data-filled="false">
+      <input id="cfg-api-origin" type="url" inputmode="url" placeholder=" " spellcheck="false" autocomplete="off">
+      <span class="m3-field__label">接口地址（Origin）</span>
+      <span class="m3-field__support">留空表示使用当前站点的同源地址。示例：https://cdsq.dao3.fun</span>
+    </label>
+    <label class="m3-field" data-filled="false">
+      <input id="cfg-proxy" type="url" inputmode="url" placeholder=" " spellcheck="false" autocomplete="off">
+      <span class="m3-field__label">CORS 代理前缀（可选）</span>
+      <span class="m3-field__support">最终地址为「代理前缀 + 目标地址」。代理需支持转发 Cookie。</span>
+    </label>
+    <label class="m3-field" data-filled="false">
+      <input id="cfg-quality" type="number" min="0.4" max="1" step="0.05" inputmode="decimal" placeholder=" " autocomplete="off">
+      <span class="m3-field__label">WebP 质量（0.4 – 1.0）</span>
+      <span class="m3-field__support">服务端会对上传结果执行一次无损重编码。数值越高，成品越接近原图。</span>
+    </label>
+    <label class="m3-switch">
+      <input id="cfg-remember" type="checkbox">
+      <span class="m3-switch__track" aria-hidden="true"><span class="m3-switch__thumb"></span></span>
+      <span class="m3-switch__text">在本机保存账号与密码<small>仅写入本浏览器的 localStorage。静态页面无法加密保存。</small></span>
+    </label>
+    <div class="drawer-note" id="origin-hint"></div>
+  </div>
+</aside>
+
+<main class="page">
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="m3-chip m3-chip--tonal">纯前端 / 无后端 / 无需构建</span>
+    <h1>两步换掉论坛头像</h1>
+    <p>
+      页面依次调用 <code>POST /files</code>（静态 WebP 直传）与
+      <code>PUT /users/{id}/avatar</code>（DERIVE 派生）两个接口。
+      全部请求由本机浏览器发出，账号与密码不经过其他服务器。
+    </p>
+  </section>
+
+  <!-- 步骤条 -->
+  <ol class="m3-stepper" id="stepper">
+    <li data-step="1" class="is-active"><span class="dot">1</span><span class="txt">登录账号</span></li>
+    <li data-step="2"><span class="dot">2</span><span class="txt">选择图片</span></li>
+    <li data-step="3"><span class="dot">3</span><span class="txt">直传并派生</span></li>
+    <li data-step="4"><span class="dot">4</span><span class="txt">生效确认</span></li>
+  </ol>
+
+  <div class="grid">
+    <div class="col-main">
+
+      <!-- 登录卡 -->
+      <section class="m3-card" id="card-login">
+        <div class="m3-card__head">
+          <span class="m3-card__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2.5"></rect><path d="M8 10V7.5a4 4 0 0 1 8 0V10"></path></svg>
+          </span>
+          <div>
+            <h2>1 - 登录社区账号</h2>
+            <p>调用 <code>POST /api/v1/session</code>，成功后由浏览器保存会话 Cookie。</p>
+          </div>
+        </div>
+        <div class="m3-card__body">
+          <div class="form-grid">
+            <label class="m3-field" data-filled="false">
+              <input id="in-username" type="text" placeholder=" " autocomplete="username" spellcheck="false">
+              <span class="m3-field__label">用户名</span>
+            </label>
+            <label class="m3-field" data-filled="false">
+              <input id="in-password" type="password" placeholder=" " autocomplete="current-password">
+              <span class="m3-field__label">密码</span>
+              <button class="m3-field__trailing" id="btn-peek" type="button" aria-label="显示或隐藏密码">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </label>
+          </div>
+          <div class="row-actions">
+            <button class="m3-button m3-button--filled" id="btn-login" type="button">
+              <span class="m3-button__label">登录</span>
+              <span class="m3-button__spinner" hidden></span>
+            </button>
+            <button class="m3-button m3-button--text" id="btn-probe" type="button">检测接口连通性</button>
+          </div>
+          <div class="m3-banner m3-banner--info" id="session-banner" hidden>
+            <div class="m3-banner__text"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 选图卡 -->
+      <section class="m3-card" id="card-image" aria-disabled="true">
+        <div class="m3-card__head">
+          <span class="m3-card__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="9" cy="10" r="2"></circle><path d="M4 18l5-5 4 4 3-3 4 4"></path></svg>
+          </span>
+          <div>
+            <h2>2 - 选择图片</h2>
+            <p>图片在本机转码为静态 WebP，随后上传至账号的个人图盘。</p>
+          </div>
+        </div>
+        <div class="m3-card__body">
+          <div class="picker" id="dropzone" tabindex="0" role="button" aria-label="选择或拖入图片">
+            <input type="file" id="in-file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden>
+            <div class="picker__empty" id="picker-empty">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4.5 15v2.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V15"></path></svg>
+              <strong>点击选择图片，或将图片拖入此区域</strong>
+              <small>支持 PNG、JPEG、WebP、GIF（取第一帧）；建议正方形，边长不小于 384px</small>
+            </div>
+            <div class="picker__preview" id="picker-preview" hidden>
+              <img id="preview-img" alt="待上传的图片预览">
+              <div class="picker__meta">
+                <strong id="meta-name">—</strong>
+                <small id="meta-info">—</small>
+              </div>
+            </div>
+          </div>
+          <div class="row-actions row-actions--between">
+            <div class="inline-fields">
+              <label class="m3-switch m3-switch--compact">
+                <input id="opt-square" type="checkbox" checked>
+                <span class="m3-switch__track" aria-hidden="true"><span class="m3-switch__thumb"></span></span>
+                <span class="m3-switch__text">居中裁成正方形</span>
+              </label>
+              <label class="m3-switch m3-switch--compact">
+                <input id="opt-max" type="checkbox" checked>
+                <span class="m3-switch__track" aria-hidden="true"><span class="m3-switch__thumb"></span></span>
+                <span class="m3-switch__text">最长边限制为 1024px</span>
+              </label>
+            </div>
+            <button class="m3-button m3-button--text" id="btn-clear" type="button" hidden>清除图片</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 执行卡 -->
+      <section class="m3-card" id="card-run" aria-disabled="true">
+        <div class="m3-card__head">
+          <span class="m3-card__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7.5 10.5 4.5 4.5 4.5-4.5"></path><path d="M4 20h16"></path></svg>
+          </span>
+          <div>
+            <h2>3 - 直传并派生头像</h2>
+            <p>先上传文件，再调用 <code>PUT avatar</code>（type: DERIVE），随后回读校验。</p>
+          </div>
+        </div>
+        <div class="m3-card__body">
+          <button class="m3-button m3-button--filled m3-button--wide" id="btn-run" type="button" disabled>
+            <span class="m3-button__label">开始上传并更换头像</span>
+            <span class="m3-button__spinner" hidden></span>
+          </button>
+          <div class="progress-wrap" id="progress-wrap" hidden>
+            <div class="m3-linear" role="progressbar" aria-label="执行进度"><span id="progress-bar"></span></div>
+            <p class="progress-text" id="progress-text">准备中…</p>
+          </div>
+          <div class="m3-banner m3-banner--error" id="error-banner" hidden>
+            <div class="m3-banner__text"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 结果卡 -->
+      <section class="m3-card m3-card--result" id="card-result" hidden>
+        <div class="m3-card__head">
+          <span class="m3-card__icon m3-card__icon--ok">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
+          </span>
+          <div>
+            <h2>4 - 已生效</h2>
+            <p id="result-sub">服务端回读确认头像类型为 CUSTOM。</p>
+          </div>
+        </div>
+        <div class="m3-card__body">
+          <div class="result-grid">
+            <div class="result-avatar">
+              <img id="result-img" alt="当前生效的头像">
+            </div>
+            <dl class="kv">
+              <div><dt>账号</dt><dd id="kv-user">—</dd></div>
+              <div><dt>用户 ID</dt><dd id="kv-uid" class="mono">—</dd></div>
+              <div><dt>头像类型</dt><dd id="kv-type">—</dd></div>
+              <div><dt>头像地址</dt><dd id="kv-url" class="mono"></dd></div>
+              <div><dt>下次可换</dt><dd id="kv-cooldown">—</dd></div>
+            </dl>
+          </div>
+          <div class="row-actions">
+            <button class="m3-button m3-button--tonal" id="btn-open-profile" type="button">打开我的主页</button>
+            <button class="m3-button m3-button--text" id="btn-reset" type="button">再换一张</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 侧栏：账号 / 图片盘 / 日志 -->
+    <aside class="col-side">
+      <section class="m3-card m3-card--tight" id="card-account">
+        <div class="m3-card__head">
+          <span class="m3-card__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.8"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg>
+          </span>
+          <div><h2>当前账号</h2><p id="acct-sub">未登录</p></div>
+        </div>
+        <div class="m3-card__body">
+          <div class="account-row">
+            <img class="account-avatar" id="acct-avatar" alt="" hidden>
+            <div class="account-meta">
+              <strong id="acct-name">—</strong>
+              <small id="acct-id" class="mono">—</small>
+            </div>
+          </div>
+          <div class="meter" id="storage-meter" hidden>
+            <div class="meter__bar"><span id="storage-fill"></span></div>
+            <small id="storage-text">图盘用量 —</small>
+          </div>
+          <button class="m3-button m3-button--text m3-button--wide" id="btn-logout" type="button" hidden>退出登录（注销会话）</button>
+        </div>
+      </section>
+
+      <section class="m3-card m3-card--tight">
+        <div class="m3-card__head">
+          <span class="m3-card__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"></path><path d="M8.5 9h7M8.5 13h7M8.5 17h4"></path></svg>
+          </span>
+          <div><h2>请求日志</h2><p>按时间倒序排列，仅保存在本次会话的内存中。</p></div>
+          <button class="m3-icon-button m3-icon-button--sm" id="btn-clear-log" type="button" title="清空日志" aria-label="清空日志">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V5h5v2M6.5 7l1 13h9l1-13"></path></svg>
+          </button>
+        </div>
+        <div class="m3-card__body">
+          <ul class="log" id="log"></ul>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="foot">
+    <p>
+      本页为静态资源，无服务端、无构建步骤、无第三方依赖，可直接打开 <code>index.html</code>。
+      所用接口为 <code>POST /files</code> 与 <code>PUT /users/{id}/avatar</code>（DERIVE 分支）。
+    </p>
+    <p class="foot-warn">
+      说明：该 DERIVE 分支在服务端不校验自定义头像的等级限制，属于已知缺陷的利用路径。
+      若服务端补充该校验，本页功能可能失效或头像被回滚。请仅在本人账号上操作。
+    </p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

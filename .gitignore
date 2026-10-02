@@ -1,0 +1,17 @@
+# 依赖与构建产物（本项目无依赖，此项用于防止误提交）
+node_modules/
+dist/
+build/
+
+# 编辑器与系统文件
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志与临时文件
+*.log
+*.tmp
+tmp/
