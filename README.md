@@ -18,6 +18,18 @@
 
 ---
 
+## 赞助方
+
+在线版由 **KitterHub** 提供赞助，服务器、域名与接口转发均由 KitterHub 承担，因此本项目可以免安装、免配置直接使用。
+
+**KitterHub** 是一个面向创作者的社区，用于投稿和展示用 Kitten、NEMO、KN、Scratch 等编辑器制作的作品，并提供论坛与工作室功能。支持编程猫账号、邮箱注册与 GitHub 登录。
+
+**主站：[https://hub.kitter.cn/](https://hub.kitter.cn/)**
+
+欢迎前往看看。
+
+---
+
 ## 怎么用
 
 （想在本机运行自己的一份时看这里，日常使用直接打开上面的网址即可。）
@@ -217,4 +229,4 @@ https://ttummc.github.io/pickcat-avatar-tool/
 
 ## 许可证
 
-[MIT](LICENSE)。相关名称与接口归其各自权利人所有，本项目与站点运营方无隶属关系。
+[MIT](LICENSE)。相关名称与接口归其各自权利人所有。本项目与社区站点运营方无隶属关系；KitterHub 为在线版提供托管，二者相互独立。
