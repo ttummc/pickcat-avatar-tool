@@ -8,7 +8,19 @@
 
 ---
 
+## 打开就能用，不用安装
+
+# [https://hub.kitter.cn/pickcat-avatar/](https://hub.kitter.cn/pickcat-avatar/)
+
+打开上面的网址，登录、选图、点一下按钮，头像就换好了。不用下载文件，不用安装 Node.js，不用改任何设置。
+
+如果这个地址打不开，或者你想自己跑一份，按下面「[怎么用](#怎么用)」操作。想自己部署一份给别人用，见「[自己部署一个在线版](#自己部署一个在线版)」。
+
+---
+
 ## 怎么用
+
+（想在本机运行自己的一份时看这里，日常使用直接打开上面的网址即可。）
 
 ### 第一步：把工具跑起来
 
@@ -99,20 +111,49 @@ node serve.mjs
 
 ---
 
-## 关于 GitHub Pages
+## 自己部署一个在线版
 
-本仓库开启了 GitHub Pages 的话，会有一个在线地址：
+想要一个打开就能用的网址（像 [hub.kitter.cn/pickcat-avatar](https://hub.kitter.cn/pickcat-avatar/) 那样），需要满足一个条件：**页面和社区接口必须是同一个域名**。
+
+原因有两条，都是浏览器的强制策略，没办法绕开：
+
+- 社区接口只接受自己域名下页面发来的请求，其他来源会被拒绝。
+- 登录状态存在 Cookie 里，跨站时浏览器不会把它带上，登录会失败。
+
+所以做法是：把 `index.html`、`styles.css`、`app.js` 三个文件放在社区同域的服务器上，同时让 `/api/v1/...` 转发到 `https://cdsq.dao3.fun`。用 Nginx 的话大致是这样：
+
+```nginx
+server {
+    server_name hub.example.com;
+
+    # 页面
+    location /pickcat-avatar/ {
+        alias /srv/pickcat-avatar/;
+        index index.html;
+    }
+
+    # 接口转发到社区
+    location /api/ {
+        proxy_pass https://cdsq.dao3.fun;
+        proxy_set_header Host cdsq.dao3.fun;
+        proxy_ssl_server_name on;
+    }
+}
+```
+
+放好之后打开 `https://hub.example.com/pickcat-avatar/` 就能直接用。
+
+转发时需要注意：`Cookie`、`Content-Type`、`Idempotency-Key` 这几个请求头要带上，响应里的 `Set-Cookie` 要去掉 `Domain` 属性，否则浏览器不会保存登录状态。
+
+### 只是放到 GitHub Pages 会怎样
+
+GitHub Pages 的地址是 `ttummc.github.io`，和社区域名不同，所以：
 
 ```
 https://ttummc.github.io/pickcat-avatar-tool/
 ```
 
-**这个在线版本只能浏览界面，不能真正更换头像。** 原因是社区接口只允许自己域名下的页面调用，浏览器也会拦截跨站的登录状态。
-
-想实际使用，有两个办法：
-
-1. 用上面的 `node serve.mjs` 在本机打开（推荐，最省事）。
-2. 在线页面仍然可用，但需要你自己准备一个中转服务，在页面右上角的设置里填写中转地址。中转的要求写在 [README 开发者部分](#给开发者) 里。
+这个地址能打开，界面完整，但**登录和换头像都不会成功**。它只用来展示界面。实际使用请打开本文开头那个可以直接用的地址，或按「[怎么用](#怎么用)」在本机运行。
 
 ---
 
